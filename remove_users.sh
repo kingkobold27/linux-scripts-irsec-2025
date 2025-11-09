@@ -20,3 +20,4 @@ for user in $users; do
 done
 
 echo "All removed users: $removed_users"
+
