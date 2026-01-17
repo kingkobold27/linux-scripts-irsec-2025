@@ -1,22 +1,32 @@
 #!/bin/bash
 
-users=$(getent passwd | awk -F: '{print $1}')
-lockedusers=""
+# Require root
+if [[ $EUID -ne 0 ]]; then
+  echo "Run this script as root."
+  exit 1
+fi
 
-for user in $users; do 
+lockedusers=()
+
+# Only users with UID >= 1000 (normal users)
+users=$(getent passwd | awk -F: '$3 >= 1000 {print $1}')
+
+for user in $users; do
+  echo
   echo "User: $user"
-  echo "Locked Users so far: $lockedusers"
-  
-  read -p "Do you want to lock this user? [Y/N] " answer
-  
-  if [ "$answer" = "Y" ]; then
-    sudo passwd -l "$user"
-    lockedusers+="$user "
-  elif [ "$answer" = "N" ]; then
-    continue
-  else
-    echo "Huh?"
-  fi
+  read -rp "Lock this user? [y/N]: " answer
+
+  case "$answer" in
+    [yY])
+      passwd -l "$user"
+      lockedusers+=("$user")
+      ;;
+    *)
+      echo "Skipping $user"
+      ;;
+  esac
 done
 
-echo "All locked users: $lockedusers"
+echo
+echo "All locked users:"
+printf ' - %s\n' "${lockedusers[@]}"
